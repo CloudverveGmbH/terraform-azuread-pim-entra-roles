@@ -1,9 +1,9 @@
 # ---------------------------------------------------------------------------
 # Module: pim-entra-role
-# Purpose: Creates a PIM-enabled, role-assignable Entra ID security group
-#          and assigns it a directory role (e.g. "Application Administrator").
-#          Members activate group membership via PIM; the group holds the
-#          permanent Entra directory role assignment.
+# Purpose: Creates a two-group PIM setup (Eligible + Privileged) for Entra
+#          directory roles (e.g. "Application Administrator").
+#          Members of the Eligible group activate into the Privileged group via PIM;
+#          the Privileged group holds the permanent directory role assignment.
 #
 # Prerequisites:
 #   - Microsoft Entra ID P2 (or Entra ID Governance) licence in the tenant
@@ -13,55 +13,66 @@
 # Usage pattern:
 #   module "app_admin_pim" {
 #     source                  = "./modules/pim-entra-role"
-#     group_display_name      = "Application Admin PIM"
+#     group_display_name      = "Application Admin"
 #     entra_role_display_name = "Application Administrator"
-#     members                 = [{ object_id = data.azuread_user.alice.object_id }]
+#     members                 = [{ object_id = data.azuread_user.alice.object_id, display_name = "Alice" }]
 #   }
 # ---------------------------------------------------------------------------
 
 variable "group_display_name" {
-  description = "Display name for the role-assignable Entra ID security group."
+  description = "Base display name. Two groups are created: 'pim-<slug>-eligible' and 'pim-<slug>'."
   type        = string
-}
-
-variable "group_description" {
-  description = "Optional description for the security group."
-  type        = string
-  default     = ""
 }
 
 variable "group_owners" {
   description = <<-EOT
-    Additional owner object IDs for the group (users or SPNs).
+    Additional owner object IDs for both groups (users or SPNs).
     The Terraform principal (data.azuread_client_config.current) is always
-    added as an owner automatically so the group remains manageable.
+    added as an owner automatically so the groups remain manageable.
   EOT
   type        = list(string)
   default     = []
 }
 
 variable "members" {
-  description = "Entra ID objects that become PIM-eligible members of the group."
+  description = <<-EOT
+    Entra ID objects to add as permanent members of the Eligible group via Terraform.
+    Leave empty ([]) to manage group membership outside Terraform (recommended for
+    large teams – avoids a terraform apply per joiner/leaver).
+  EOT
   type = list(object({
     object_id    = string
     display_name = optional(string, "")
   }))
+  default = []
 }
 
 variable "entra_role_display_name" {
   description = <<-EOT
-    Display name of the Entra ID directory role to assign permanently to the group.
-    The group's members can then activate it via PIM.
+    Display name of the Entra ID directory role to assign permanently to the Privileged group.
     Examples: "Application Administrator", "Cloud Application Administrator",
               "Privileged Role Administrator".
   EOT
   type        = string
 }
 
-variable "require_approval" {
-  description = "Whether activating the role requires explicit approval from an approver."
-  type        = bool
-  default     = false
+variable "approvers" {
+  description = <<-EOT
+    PIM approvers. When set, activations require both approval and a business justification.
+    Leave empty ([]) to allow self-activation without approval.
+    Each entry:
+      object_id = "<uuid>"                        # user or group object_id
+      type      = "singleUser" | "groupMembers"   # optional - auto-inferred from Entra if omitted
+    Examples:
+      approvers = [{ object_id = data.azuread_user.joscha.object_id }]
+      approvers = [{ object_id = azuread_group.managers.object_id }]
+      approvers = [{ object_id = "...", type = "groupMembers" }]
+  EOT
+  type = list(object({
+    object_id = string
+    type      = optional(string) # null = auto-infer from Entra directory object type
+  }))
+  default = []
 }
 
 variable "maximum_activation_duration" {
@@ -74,25 +85,12 @@ variable "maximum_activation_duration" {
   default     = "PT4H"
 }
 
-variable "approvers" {
-  description = <<-EOT
-    PIM approvers, required when require_approval = true.
-    Each entry: { object_id = "<uuid>", type = "singleUser" | "groupMembers" }
-    type defaults to "singleUser".
-  EOT
-  type = list(object({
-    object_id = string
-    type      = optional(string, "singleUser")
-  }))
-  default = []
-}
-
 variable "eligibility_years" {
   description = <<-EOT
-    How many years each eligibility schedule remains valid.
+    How many years the eligibility schedule remains valid.
     A time_rotating resource triggers re-application after this period so
     schedules are automatically renewed without manual intervention.
   EOT
-  type    = number
-  default = 1
+  type        = number
+  default     = 1
 }
