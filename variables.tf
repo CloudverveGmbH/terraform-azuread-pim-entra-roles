@@ -13,15 +13,26 @@
 # Usage pattern:
 #   module "app_admin_pim" {
 #     source                  = "./modules/pim-entra-role"
-#     group_display_name      = "Application Admin"
 #     entra_role_display_name = "Application Administrator"
 #     members                 = [{ object_id = data.azuread_user.alice.object_id, display_name = "Alice" }]
+#   }
+#
+#   # Override the group name (e.g. two groups for the same role, different teams):
+#   module "app_admin_pim_teamb" {
+#     source                  = "./modules/pim-entra-role"
+#     entra_role_display_name = "Application Administrator"
+#     group_display_name      = "Application Admin Team B"
 #   }
 # ---------------------------------------------------------------------------
 
 variable "group_display_name" {
-  description = "Base display name. Two groups are created: 'pim-<slug>-eligible' and 'pim-<slug>'."
+  description = <<-EOT
+    Optional override for the group base name. When omitted, the slug is derived
+    from entra_role_display_name automatically.
+    Two groups are always created: 'pim-<slug>-eligible' and 'pim-<slug>'.
+  EOT
   type        = string
+  default     = null
 }
 
 variable "group_owners" {

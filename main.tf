@@ -24,10 +24,13 @@ locals {
     var.group_owners,
   ))
 
-  # Slug derived from group_display_name – same pattern as pim-azure-role.
-  # Example: "Application Admin" → "application-admin"
-  # Resulting groups: "pim-application-admin" (privileged) + "pim-application-admin-eligible"
-  group_slug = join("-", regexall("[a-z0-9]+", lower(var.group_display_name)))
+  # Slug derived from group_display_name (if set) or entra_role_display_name.
+  # Omitting group_display_name is the common case for directory roles since
+  # they are tenant-wide and you normally have exactly one group per role.
+  # Example: entra_role_display_name = "Application Administrator"
+  #          → slug "application-administrator"
+  #          → groups: "pim-application-administrator" + "pim-application-administrator-eligible"
+  group_slug = join("-", regexall("[a-z0-9]+", lower(coalesce(var.group_display_name, var.entra_role_display_name))))
 
   # Approval is derived from whether any approvers are configured.
   require_approval = length(var.approvers) > 0

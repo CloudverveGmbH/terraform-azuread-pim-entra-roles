@@ -125,7 +125,7 @@ module "app_admin_pim" {
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `group_display_name` | `string` | — | Base name; groups `pim-<slug>` and `pim-<slug>-eligible` are created |
+| `group_display_name` | `string` | derived from role name | Optional override for the group base name. When omitted, the slug is derived from `entra_role_display_name` automatically |
 | `entra_role_display_name` | `string` | — | Display name of the Entra directory role to assign (e.g. `"Application Administrator"`) |
 | `group_owners` | `list(string)` | `[]` | Additional owner object IDs (Terraform SPN is always added) |
 | `members` | `list(object)` | `[]` | Initial members of the Eligible group (`object_id`, optional `display_name`) |
@@ -250,7 +250,7 @@ jeder Teamänderung.
 
 | Name | Typ | Standard | Beschreibung |
 |---|---|---|---|
-| `group_display_name` | `string` | — | Basisname; Gruppen `pim-<slug>` und `pim-<slug>-eligible` werden erstellt |
+| `group_display_name` | `string` | aus Rollenname abgeleitet | Optionaler Override für den Gruppenbasisnamen. Wenn weggelassen, wird der Slug automatisch aus `entra_role_display_name` abgeleitet |
 | `entra_role_display_name` | `string` | — | Anzeigename der Entra-Verzeichnisrolle (z. B. `"Application Administrator"`) |
 | `group_owners` | `list(string)` | `[]` | Zusätzliche Owner-Object-IDs (Terraform-SPN wird immer ergänzt) |
 | `members` | `list(object)` | `[]` | Initiale Mitglieder der Eligible-Gruppe (`object_id`, optionaler `display_name`) |
