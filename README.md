@@ -1,4 +1,4 @@
-# pim-entra-role
+# pim-entra-role [![CI](https://github.com/CloudverveGmbH/terraform-azuread-pim-entra-role/actions/workflows/ci.yml/badge.svg)](https://github.com/CloudverveGmbH/terraform-azuread-pim-entra-role/actions/workflows/ci.yml)
 
 A reusable Terraform module that implements just-in-time access to Microsoft Entra
 directory roles (e.g. "Application Administrator") using Privileged Identity Management
@@ -42,7 +42,7 @@ resources, resource groups, subscriptions, or management groups.
 
 | Requirement | Details |
 |---|---|
-| Terraform | >= 1.5 |
+| Terraform | >= 1.9 |
 | hashicorp/azuread | >= 3.0 |
 | hashicorp/time | >= 0.10 |
 | Entra licence | Microsoft Entra ID P2 or Entra ID Governance |
@@ -66,7 +66,8 @@ The Terraform SPN requires the following **Application** permissions on the Micr
 
 ```hcl
 module "app_admin_pim" {
-  source = "modulePath/pim-entra-role"
+  source  = "CloudverveGmbH/pim-entra-role/azuread"
+  version = "~> 0.1"
 
   group_display_name      = "Application Admin"
   entra_role_display_name = "Application Administrator"
@@ -81,7 +82,8 @@ module "app_admin_pim" {
 
 ```hcl
 module "privileged_role_admin_pim" {
-  source = "modulePath/pim-entra-role"
+  source  = "CloudverveGmbH/pim-entra-role/azuread"
+  version = "~> 0.1"
 
   group_display_name          = "Privileged Role Admin"
   entra_role_display_name     = "Privileged Role Administrator"
@@ -114,7 +116,8 @@ Leave `members = []` (the default) and add users directly to the
 
 ```hcl
 module "app_admin_pim" {
-  source = "modulePath/pim-entra-role"
+  source  = "CloudverveGmbH/pim-entra-role/azuread"
+  version = "~> 0.1"
   group_display_name      = "Application Admin"
   entra_role_display_name = "Application Administrator"
   # members = []  ← default; manage via Entra admin center
@@ -129,7 +132,8 @@ module "app_admin_pim" {
 | `entra_role_display_name` | `string` | — | Display name of the Entra directory role to assign (e.g. `"Application Administrator"`) |
 | `group_owners` | `list(string)` | `[]` | Additional owner object IDs (Terraform SPN is always added) |
 | `members` | `list(object)` | `[]` | Initial members of the Eligible group (`object_id`, optional `display_name`) |
-| `approvers` | `list(object)` | `[]` | PIM approvers (`object_id`, optional `type`); when set, approval + justification are required |
+| `approvers` | `list(object)` | `[]` | PIM approvers (`object_id`, optional `type`); when set, approval is required on activation |
+| `require_justification` | `bool` | `true` | Require a business justification on activation (independent of approval) |
 | `maximum_activation_duration` | `string` | `"PT4H"` | ISO 8601 duration; shorter windows recommended for high-privilege directory roles |
 | `eligibility_years` | `number` | `1` | Validity of the eligibility schedule in years |
 
@@ -138,9 +142,12 @@ module "app_admin_pim" {
 | Name | Description |
 |---|---|
 | `eligible_group_id` | Object ID of the Eligible group |
+| `eligible_group_name` | Display name of the Eligible group (`pim-<slug>-eligible`) |
 | `privileged_group_id` | Object ID of the Privileged group (role-assignable) |
+| `privileged_group_name` | Display name of the Privileged group (`pim-<slug>`) |
 | `group_id` | Alias for `privileged_group_id` (backward-compatible) |
 | `principal_id` | Alias for `privileged_group_id` |
+| `resolved_approvers` | Approvers with their resolved PIM type after auto-inference |
 | `directory_role_assignment_id` | Resource ID of the Entra directory role assignment |
 
 ---
@@ -189,7 +196,7 @@ Management Groups abzielt.
 
 | Anforderung | Details |
 |---|---|
-| Terraform | >= 1.5 |
+| Terraform | >= 1.9 |
 | hashicorp/azuread | >= 3.0 |
 | hashicorp/time | >= 0.10 |
 | Entra-Lizenz | Microsoft Entra ID P2 oder Entra ID Governance |
@@ -213,7 +220,8 @@ Der Terraform-SPN benötigt folgende **Application**-Berechtigungen auf der Micr
 
 ```hcl
 module "app_admin_pim" {
-  source = "modulePath/pim-entra-role"
+  source  = "CloudverveGmbH/pim-entra-role/azuread"
+  version = "~> 0.1"
 
   group_display_name      = "Application Admin"
   entra_role_display_name = "Application Administrator"
@@ -254,7 +262,8 @@ jeder Teamänderung.
 | `entra_role_display_name` | `string` | — | Anzeigename der Entra-Verzeichnisrolle (z. B. `"Application Administrator"`) |
 | `group_owners` | `list(string)` | `[]` | Zusätzliche Owner-Object-IDs (Terraform-SPN wird immer ergänzt) |
 | `members` | `list(object)` | `[]` | Initiale Mitglieder der Eligible-Gruppe (`object_id`, optionaler `display_name`) |
-| `approvers` | `list(object)` | `[]` | PIM-Genehmiger (`object_id`, optionaler `type`); wenn gesetzt, sind Genehmigung + Begründung Pflicht |
+| `approvers` | `list(object)` | `[]` | PIM-Genehmiger (`object_id`, optionaler `type`); wenn gesetzt, ist Genehmigung bei Aktivierung Pflicht |
+| `require_justification` | `bool` | `true` | Begründung bei Aktivierung erforderlich (unabhängig von Genehmigung) |
 | `maximum_activation_duration` | `string` | `"PT4H"` | ISO-8601-Dauer; kürzere Fenster für hochprivilegierte Verzeichnisrollen empfohlen |
 | `eligibility_years` | `number` | `1` | Gültigkeit des Eligibility-Schedules in Jahren |
 
@@ -263,23 +272,14 @@ jeder Teamänderung.
 | Name | Beschreibung |
 |---|---|
 | `eligible_group_id` | Object-ID der Eligible-Gruppe |
+| `eligible_group_name` | Anzeigename der Eligible-Gruppe (`pim-<slug>-eligible`) |
 | `privileged_group_id` | Object-ID der Privileged-Gruppe (rollenberechtigend) |
+| `privileged_group_name` | Anzeigename der Privileged-Gruppe (`pim-<slug>`) |
 | `group_id` | Alias für `privileged_group_id` (abwärtskompatibel) |
 | `principal_id` | Alias für `privileged_group_id` |
+| `resolved_approvers` | Genehmiger mit aufgelöstem PIM-Typ nach Auto-Inferenz |
 | `directory_role_assignment_id` | Ressourcen-ID der Entra-Verzeichnisrollenzuweisung |
 
-1.	Installation process
-2.	Software dependencies
-3.	Latest releases
-4.	API references
+## Beitragen
 
-# Build and Test
-TODO: Describe and show how to build your code and run the tests. 
-
-# Contribute
-TODO: Explain how other users and developers can contribute to make your code better. 
-
-If you want to learn more about creating good readme files then refer the following [guidelines](https://docs.microsoft.com/en-us/azure/devops/repos/git/create-a-readme?view=azure-devops). You can also seek inspiration from the below readme files:
-- [ASP.NET Core](https://github.com/aspnet/Home)
-- [Visual Studio Code](https://github.com/Microsoft/vscode)
-- [Chakra Core](https://github.com/Microsoft/ChakraCore)
+Siehe [CONTRIBUTING.md](CONTRIBUTING.md) für den PR-, Changelog- und Release-Prozess.

@@ -33,6 +33,13 @@ variable "group_display_name" {
   EOT
   type        = string
   default     = null
+
+  validation {
+    # When set, it must contain at least one alphanumeric character so the
+    # derived slug is non-empty. null keeps the automatic role-name derivation.
+    condition     = var.group_display_name == null || length(join("-", regexall("[a-z0-9]+", lower(coalesce(var.group_display_name, "x"))))) > 0
+    error_message = "group_display_name, when set, must contain at least one alphanumeric character."
+  }
 }
 
 variable "group_owners" {
@@ -65,6 +72,11 @@ variable "entra_role_display_name" {
               "Privileged Role Administrator".
   EOT
   type        = string
+
+  validation {
+    condition     = length(trimspace(var.entra_role_display_name)) > 0
+    error_message = "entra_role_display_name must not be empty."
+  }
 }
 
 variable "approvers" {
@@ -84,6 +96,19 @@ variable "approvers" {
     type      = optional(string) # null = auto-infer from Entra directory object type
   }))
   default = []
+
+  validation {
+    condition = alltrue([
+      for a in var.approvers : a.type == null || contains(["singleUser", "groupMembers"], a.type)
+    ])
+    error_message = "approvers[].type must be null (auto-infer), \"singleUser\", or \"groupMembers\"."
+  }
+}
+
+variable "require_justification" {
+  description = "Require a business justification on activation. Independent of approval."
+  type        = bool
+  default     = true
 }
 
 variable "maximum_activation_duration" {
@@ -94,6 +119,11 @@ variable "maximum_activation_duration" {
   EOT
   type        = string
   default     = "PT4H"
+
+  validation {
+    condition     = can(regex("^P(T?)([0-9]+[HMD])+$|^PT[0-9]+[HMS]$", var.maximum_activation_duration))
+    error_message = "maximum_activation_duration must be an ISO 8601 duration, e.g. \"PT1H\", \"PT4H\", or \"PT8H\"."
+  }
 }
 
 variable "eligibility_years" {
@@ -104,4 +134,9 @@ variable "eligibility_years" {
   EOT
   type        = number
   default     = 1
+
+  validation {
+    condition     = var.eligibility_years >= 1
+    error_message = "eligibility_years must be at least 1."
+  }
 }

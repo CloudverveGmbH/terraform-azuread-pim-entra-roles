@@ -4,9 +4,9 @@
 
 data "azuread_client_config" "current" {}
 
-# Look up the directory role by display name so callers use human-readable
-# names (e.g. "Application Administrator") instead of template_id GUIDs.
-data "azuread_directory_role" "this" {
+# Activate (or reference if already active) the directory role by display name.
+# Using a resource block is required – azuread_directory_role has no data source.
+resource "azuread_directory_role" "this" {
   display_name = var.entra_role_display_name
 }
 
@@ -33,7 +33,9 @@ locals {
   group_slug = join("-", regexall("[a-z0-9]+", lower(coalesce(var.group_display_name, var.entra_role_display_name))))
 
   # Approval is derived from whether any approvers are configured.
-  require_approval = length(var.approvers) > 0
+  # Justification is an independent toggle; approval does not force it.
+  require_approval      = length(var.approvers) > 0
+  require_justification = var.require_justification
 
   # Resolve approver type: explicit value wins; when null, infer from the Entra
   # directory object type. "Group" (any casing) → "groupMembers"; else → "singleUser".
@@ -99,7 +101,7 @@ resource "azuread_group_role_management_policy" "this" {
 
   activation_rules {
     maximum_duration      = var.maximum_activation_duration
-    require_justification = true
+    require_justification = local.require_justification
     require_approval      = local.require_approval
 
     dynamic "approval_stage" {
@@ -134,6 +136,15 @@ resource "azuread_privileged_access_group_eligibility_schedule" "this" {
 # The privileged group holds the directory role permanently.
 # Individual access is controlled by PIM eligibility above.
 resource "azuread_directory_role_assignment" "this" {
-  role_id             = data.azuread_directory_role.this.template_id
+  role_id             = azuread_directory_role.this.template_id
   principal_object_id = azuread_group.privileged.object_id
+}
+
+# Entra group display names are limited to 256 characters. The eligible group
+# carries the longest name ("pim-<slug>-eligible"); guard against overly long slugs.
+check "group_name_length" {
+  assert {
+    condition     = length("pim-${local.group_slug}-eligible") <= 256
+    error_message = "Derived group name 'pim-${local.group_slug}-eligible' exceeds the 256-character Entra limit. Shorten group_display_name or entra_role_display_name."
+  }
 }
