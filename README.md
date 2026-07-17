@@ -1,4 +1,5 @@
-# pim-entra-role [![CI](https://github.com/CloudverveGmbH/terraform-azuread-pim-entra-role/actions/workflows/ci.yml/badge.svg)](https://github.com/CloudverveGmbH/terraform-azuread-pim-entra-role/actions/workflows/ci.yml)
+# pim-entra-role [![CI](https://github.com/CloudverveGmbH/terraform-azuread-pim-entra-roles/actions/workflows/ci.yml/badge.svg)](https://github.com/CloudverveGmbH/terraform-azuread-pim-entra-roles/actions/workflows/ci.yml)
+
 
 A reusable Terraform module that implements just-in-time access to Microsoft Entra
 directory roles (e.g. "Application Administrator") using Privileged Identity Management
