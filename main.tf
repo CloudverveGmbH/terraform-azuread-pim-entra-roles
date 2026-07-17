@@ -24,13 +24,13 @@ locals {
     var.group_owners,
   ))
 
-  # Slug derived from group_display_name (if set) or entra_role_display_name.
-  # Omitting group_display_name is the common case for directory roles since
+  # Slug derived from override_group_display_name (if set) or entra_role_display_name.
+  # Omitting override_group_display_name is the common case for directory roles since
   # they are tenant-wide and you normally have exactly one group per role.
   # Example: entra_role_display_name = "Application Administrator"
   #          → slug "application-administrator"
   #          → groups: "pim-application-administrator" + "pim-application-administrator-eligible"
-  group_slug = join("-", regexall("[a-z0-9]+", lower(coalesce(var.group_display_name, var.entra_role_display_name))))
+  group_slug = join("-", regexall("[a-z0-9]+", lower(coalesce(var.override_group_display_name, var.entra_role_display_name))))
 
   # Approval is derived from whether any approvers are configured.
   # Justification is an independent toggle; approval does not force it.
@@ -145,6 +145,6 @@ resource "azuread_directory_role_assignment" "this" {
 check "group_name_length" {
   assert {
     condition     = length("pim-${local.group_slug}-eligible") <= 256
-    error_message = "Derived group name 'pim-${local.group_slug}-eligible' exceeds the 256-character Entra limit. Shorten group_display_name or entra_role_display_name."
+    error_message = "Derived group name 'pim-${local.group_slug}-eligible' exceeds the 256-character Entra limit. Shorten override_group_display_name or entra_role_display_name."
   }
 }

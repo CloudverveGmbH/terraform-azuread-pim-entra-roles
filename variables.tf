@@ -21,11 +21,11 @@
 #   module "app_admin_pim_teamb" {
 #     source                  = "./modules/pim-entra-role"
 #     entra_role_display_name = "Application Administrator"
-#     group_display_name      = "Application Admin Team B"
+#     override_group_display_name = "Application Admin Team B"
 #   }
 # ---------------------------------------------------------------------------
 
-variable "group_display_name" {
+variable "override_group_display_name" {
   description = <<-EOT
     Optional override for the group base name. When omitted, the slug is derived
     from entra_role_display_name automatically.
@@ -37,8 +37,8 @@ variable "group_display_name" {
   validation {
     # When set, it must contain at least one alphanumeric character so the
     # derived slug is non-empty. null keeps the automatic role-name derivation.
-    condition     = var.group_display_name == null || length(join("-", regexall("[a-z0-9]+", lower(coalesce(var.group_display_name, "x"))))) > 0
-    error_message = "group_display_name, when set, must contain at least one alphanumeric character."
+    condition     = var.override_group_display_name == null || length(join("-", regexall("[a-z0-9]+", lower(coalesce(var.override_group_display_name, "x"))))) > 0
+    error_message = "override_group_display_name, when set, must contain at least one alphanumeric character."
   }
 }
 
