@@ -27,8 +27,9 @@ privileged group — and only for the configured time window. Adding or removing
 people from the eligible group is a plain Entra group operation, no `terraform apply`
 needed per joiner/leaver.
 
-**Group naming** is derived automatically from `group_display_name`:
-- `"Application Admin"` → groups `pim-application-admin` and `pim-application-admin-eligible`
+**Group naming** is derived from `entra_role_display_name`. Set `override_group_display_name` to customise it:
+- `entra_role_display_name = "Application Administrator"` → groups `pim-application-administrator` and `pim-application-administrator-eligible`
+- `override_group_display_name = "App Admin Team B"` → groups `pim-app-admin-team-b` and `pim-app-admin-team-b-eligible`
 
 **Approver type inference:** passing an `object_id` without a `type` field causes the
 module to look up the Entra directory object and set `groupMembers` for groups or
@@ -69,7 +70,6 @@ module "app_admin_pim" {
   source  = "CloudverveGmbH/pim-entra-role/azuread"
   version = "~> 0.1"
 
-  group_display_name      = "Application Admin"
   entra_role_display_name = "Application Administrator"
 
   members = [
@@ -85,8 +85,8 @@ module "privileged_role_admin_pim" {
   source  = "CloudverveGmbH/pim-entra-role/azuread"
   version = "~> 0.1"
 
-  group_display_name          = "Privileged Role Admin"
   entra_role_display_name     = "Privileged Role Administrator"
+  override_group_display_name = "Privileged Role Admin"  # optional: shorten the auto-derived slug
   maximum_activation_duration = "PT2H"
 
   members = [
@@ -118,7 +118,6 @@ Leave `members = []` (the default) and add users directly to the
 module "app_admin_pim" {
   source  = "CloudverveGmbH/pim-entra-role/azuread"
   version = "~> 0.1"
-  group_display_name      = "Application Admin"
   entra_role_display_name = "Application Administrator"
   # members = []  ← default; manage via Entra admin center
 }
@@ -128,7 +127,7 @@ module "app_admin_pim" {
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `group_display_name` | `string` | derived from role name | Optional override for the group base name. When omitted, the slug is derived from `entra_role_display_name` automatically |
+| `override_group_display_name` | `string` | derived from role name | Optional override for the group base name. When omitted, the slug is derived from `entra_role_display_name` automatically |
 | `entra_role_display_name` | `string` | — | Display name of the Entra directory role to assign (e.g. `"Application Administrator"`) |
 | `group_owners` | `list(string)` | `[]` | Additional owner object IDs (Terraform SPN is always added) |
 | `members` | `list(object)` | `[]` | Initial members of the Eligible group (`object_id`, optional `display_name`) |
@@ -149,6 +148,10 @@ module "app_admin_pim" {
 | `principal_id` | Alias for `privileged_group_id` |
 | `resolved_approvers` | Approvers with their resolved PIM type after auto-inference |
 | `directory_role_assignment_id` | Resource ID of the Entra directory role assignment |
+
+## AI Disclosure
+
+While the architecture and design decisions were made by a human, the code, tests, and documentation were mostly written with AI assistance. All technical content should be reviewed before use in production or critical environments.
 
 ---
 
@@ -180,8 +183,9 @@ erscheinen in der privilegierten Gruppe — und nur für das konfigurierte Zeitf
 Personen in der Eligible-Gruppe hinzuzufügen oder zu entfernen ist eine einfache
 Entra-Gruppenoperation, kein `terraform apply` pro Neueinsteiger oder Ausscheider.
 
-**Gruppennamensgebung** wird automatisch aus `group_display_name` abgeleitet:
-- `"Application Admin"` → Gruppen `pim-application-admin` und `pim-application-admin-eligible`
+**Gruppennamensgebung** wird aus `entra_role_display_name` abgeleitet. Mit `override_group_display_name` kann sie überschrieben werden:
+- `entra_role_display_name = "Application Administrator"` → Gruppen `pim-application-administrator` und `pim-application-administrator-eligible`
+- `override_group_display_name = "App Admin Team B"` → Gruppen `pim-app-admin-team-b` und `pim-app-admin-team-b-eligible`
 
 **Approver-Typ-Inferenz:** Wird ein `object_id` ohne `type` übergeben, schaut das Modul
 das Entra-Directory-Objekt nach und setzt automatisch `groupMembers` für Gruppen bzw.
@@ -223,7 +227,6 @@ module "app_admin_pim" {
   source  = "CloudverveGmbH/pim-entra-role/azuread"
   version = "~> 0.1"
 
-  group_display_name      = "Application Admin"
   entra_role_display_name = "Application Administrator"
 
   members = [
@@ -258,7 +261,7 @@ jeder Teamänderung.
 
 | Name | Typ | Standard | Beschreibung |
 |---|---|---|---|
-| `group_display_name` | `string` | aus Rollenname abgeleitet | Optionaler Override für den Gruppenbasisnamen. Wenn weggelassen, wird der Slug automatisch aus `entra_role_display_name` abgeleitet |
+| `override_group_display_name` | `string` | aus Rollenname abgeleitet | Optionaler Override für den Gruppenbasisnamen. Wenn weggelassen, wird der Slug automatisch aus `entra_role_display_name` abgeleitet |
 | `entra_role_display_name` | `string` | — | Anzeigename der Entra-Verzeichnisrolle (z. B. `"Application Administrator"`) |
 | `group_owners` | `list(string)` | `[]` | Zusätzliche Owner-Object-IDs (Terraform-SPN wird immer ergänzt) |
 | `members` | `list(object)` | `[]` | Initiale Mitglieder der Eligible-Gruppe (`object_id`, optionaler `display_name`) |
@@ -283,3 +286,7 @@ jeder Teamänderung.
 ## Beitragen
 
 Siehe [CONTRIBUTING.md](CONTRIBUTING.md) für den PR-, Changelog- und Release-Prozess.
+
+## KI-Hinweis
+
+Architektur und Design-Entscheidungen stammen von einem Menschen; Code, Tests und Dokumentation wurden überwiegend mit KI-Unterstützung erstellt. Alle technischen Inhalte sollten vor produktivem Einsatz geprüft werden.

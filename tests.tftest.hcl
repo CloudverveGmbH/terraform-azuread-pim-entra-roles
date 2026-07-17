@@ -34,18 +34,18 @@ run "group_names_derived_from_role_name" {
   }
 }
 
-# group_display_name overrides the role-name-based slug.
-run "group_display_name_overrides_role_name" {
+# override_group_display_name overrides the role-name-based slug.
+run "override_group_display_name_overrides_role_name" {
   command = plan
 
   variables {
-    entra_role_display_name = "Application Administrator"
-    group_display_name      = "Application Admin Team B"
+    entra_role_display_name     = "Application Administrator"
+    override_group_display_name = "Application Admin Team B"
   }
 
   assert {
     condition     = output.privileged_group_name == "pim-application-admin-team-b"
-    error_message = "group_display_name should override the role-name-derived slug."
+    error_message = "override_group_display_name should override the role-name-derived slug."
   }
 }
 
